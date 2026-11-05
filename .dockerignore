@@ -1,0 +1,8 @@
+.git
+.env
+.gitignore
+config/LocalSettings.php
+backups/
+*.sql
+*.sql.gz
+*.log

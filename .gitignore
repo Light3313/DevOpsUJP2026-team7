@@ -1,0 +1,7 @@
+.env
+config/LocalSettings.php
+*.sql
+*.sql.gz
+*.tar.gz
+*.log
+backups/

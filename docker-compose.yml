@@ -1,0 +1,27 @@
+services:
+  wiki-db:
+    image: mariadb:10.11
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - wiki_db_data:/var/lib/mysql
+
+  wiki:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${WIKI_PORT:-9001}:80"
+    depends_on:
+      - wiki-db
+    volumes:
+      - wiki_images:/var/www/html/images
+      # Після встановлення MediaWiki розкоментуйте:
+      # - ./config/LocalSettings.php:/var/www/html/LocalSettings.php:ro
+
+volumes:
+  wiki_db_data:
+  wiki_images:
