@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  wiki-db:
+    image: mariadb:10.11
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${DB_NAME:-wikidb}
+      MYSQL_USER: ${DB_USER:-wikiuser}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-wikipassword}
+    volumes:
+      - mediawiki_db_data:/var/lib/mysql
+    networks:
+      - wiki-network
+
+    healthcheck:
+      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  php-wikimedia:
+    build: ./mywiki
+    ports:
+      - "9000:80"
+    networks:
+      - wiki-network
+    restart: always
+
+    depends_on:
+      wiki-db:
+        condition: service_healthy
+    volumes:
+      - mediawiki_images:/var/lib/mediawiki/images
+
+  backup-agent:
+    image: databack/mysql-backup:latest
+    container_name: wiki-backup-agent
+    environment:
+      - DB_SERVER=wiki-db
+      - DB_USER=root
+      - DB_PASSWORD=${DB_ROOT_PASSWORD:-root_password}
+      - DB_NAME=${DB_NAME:-wikidb}
+      - SCHEDULE=@daily
+    volumes:
+      - /home/dev/dock_backups/mywiki:/backup
+    networks:
+      - wiki-network
+    depends_on:
+      wiki-db:
+        condition: service_healthy
+
+volumes:
+  mediawiki_db_data:
+  mediawiki_images:
+
+networks:
+  wiki-network:
+    driver: bridge

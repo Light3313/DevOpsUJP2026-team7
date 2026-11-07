@@ -1,0 +1,5 @@
+.env
+mediawiki_db_data/
+mediawiki_images/
+dock_backups/
+*.log
