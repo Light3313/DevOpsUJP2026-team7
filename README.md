@@ -28,4 +28,6 @@
 
 ##  Резервне копіювання
 * **Що охоплює:** дампи бази даних MariaDB та медіафайли.
-* **Ручний запуск:** `docker-compose --profile backup up`
+* **Ручний запуск дампа:** 
+  ```bash
+  docker exec dev-wiki-db-1 mariadb-dump -u root -proot_password wikidb | gzip > ~/dock_backups/mywiki/db_$(date +\%F).sql.gz
