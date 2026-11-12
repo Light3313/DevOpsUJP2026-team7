@@ -5,3 +5,10 @@ config/LocalSettings.php
 *.tar.gz
 *.log
 backups/
+
+# MediaWiki runtime & secrets
+mywiki/LocalSettings.php
+mywiki/images/*
+!mywiki/images/.htaccess
+mywiki/cache/*
+*.sqlite
