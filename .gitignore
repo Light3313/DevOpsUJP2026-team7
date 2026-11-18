@@ -1,5 +1,14 @@
 .env
-mediawiki_db_data/
-mediawiki_images/
-dock_backups/
+config/LocalSettings.php
+*.sql
+*.sql.gz
+*.tar.gz
 *.log
+backups/
+
+# MediaWiki runtime & secrets
+mywiki/LocalSettings.php
+mywiki/images/*
+!mywiki/images/.htaccess
+mywiki/cache/*
+*.sqlite

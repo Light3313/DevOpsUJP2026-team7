@@ -1,4 +1,3 @@
-FROM mediawiki:1.42
-COPY . /var/www/html/
-RUN chown -R www-data:www-data /var/www/html
+FROM mediawiki:1.42.7
+
 EXPOSE 80

@@ -1,60 +1,27 @@
-version: '3.8'
-
 services:
   wiki-db:
     image: mariadb:10.11
-    restart: always
+    restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password}
-      MYSQL_DATABASE: ${DB_NAME:-wikidb}
-      MYSQL_USER: ${DB_USER:-wikiuser}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-wikipassword}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
-      - mediawiki_db_data:/var/lib/mysql
-    networks:
-      - wiki-network
+      - wiki_db_data:/var/lib/mysql
 
-    healthcheck:
-      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  php-wikimedia:
-    build: ./mywiki
+  wiki:
+    build: .
+    restart: unless-stopped
     ports:
-      - "9000:80"
-    networks:
-      - wiki-network
-    restart: always
-
+      - "${WIKI_PORT:-9001}:80"
     depends_on:
-      wiki-db:
-        condition: service_healthy
+      - wiki-db
     volumes:
-      - mediawiki_images:/var/lib/mediawiki/images
-
-  backup-agent:
-    image: databack/mysql-backup:latest
-    container_name: wiki-backup-agent
-    environment:
-      - DB_SERVER=wiki-db
-      - DB_USER=root
-      - DB_PASSWORD=${DB_ROOT_PASSWORD:-root_password}
-      - DB_NAME=${DB_NAME:-wikidb}
-      - SCHEDULE=@daily
-    volumes:
-      - /home/dev/dock_backups/mywiki:/backup
-    networks:
-      - wiki-network
-    depends_on:
-      wiki-db:
-        condition: service_healthy
+      - wiki_images:/var/www/html/images
+      # Після встановлення MediaWiki розкоментуйте:
+      # - ./config/LocalSettings.php:/var/www/html/LocalSettings.php:ro
 
 volumes:
-  mediawiki_db_data:
-  mediawiki_images:
-
-networks:
-  wiki-network:
-    driver: bridge
+  wiki_db_data:
+  wiki_images:

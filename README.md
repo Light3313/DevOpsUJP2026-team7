@@ -1,31 +1,38 @@
-# MediaWiki DevOps - Custom Docker Setup
+# DevOps MediaWiki Project
 
-## 🛠Використані технології
-* **Docker & Docker Compose** — контейнеризація та оркестрація.
-* **MediaWiki** — основний вебзастосунок для вікі.
-* **MariaDB** — реляційна база даних для зберігання контенту.
+Навчальний DevOps-проєкт із розгортання MediaWiki за допомогою Docker та Docker Compose.
 
----
+## Використані технології
 
-##  Архітектура проєкту
-Проєкт складається з двох сервісів:
-1. **`wiki`** — вебзастосунок MediaWiki.
-2. **`wiki-db`** — база даних MariaDB.
+- Docker — контейнеризація застосунку.
+- Docker Compose — керування контейнерами.
+- MediaWiki 1.42.7 — програмне забезпечення Wiki.
+- MariaDB 10.11 — система керування базами даних.
+- Bash — автоматизація резервного копіювання.
+- Cron — планування автоматичного виконання завдань.
 
-**Docker volumes:**
-* **`wiki_db_data`** — дані БД.
-* **`wiki_images`** — медіафайли MediaWiki.
+## Архітектура проєкту
 
----
+Проєкт складається з двох основних сервісів:
 
-##  Конфігурація
-* **`Dockerfile`** — збірка кастомного середовища.
-* **`docker-compose.yml`** — оркестрація сервісів і портів.
-* **`.env_exam`** — шаблон змінних середовища.
-* **`.gitignore`** — виключення службових файлів.
+1. **wiki** — вебзастосунок MediaWiki.
+2. **wiki-db** — база даних MariaDB.
 
----
+Для збереження даних використовуються Docker volumes:
+- `wiki_db_data` — дані бази даних.
+- `wiki_images` — завантажені зображення MediaWiki.
 
-##  Резервне копіювання
-* **Що охоплює:** дампи бази даних MariaDB та медіафайли.
-* **Ручний запуск:** `docker-compose --profile backup up`
+## Структура проєкту
+
+```text
+mywiki-devops/
+├── backup/
+│   └── backup-mywiki.sh
+├── config/
+│   └── .gitkeep
+├── Dockerfile
+├── docker-compose.yml
+├── .dockerignore
+├── .gitignore
+├── .env.example
+└── README.md
