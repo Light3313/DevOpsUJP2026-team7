@@ -1,3 +1,5 @@
+include:
+  - monitoring/docker-compose.yml
 services:
   wiki-db:
     image: mariadb:10.11
