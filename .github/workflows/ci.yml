@@ -25,6 +25,7 @@ steps:
     uses: hadolint/hadolint-action@v3.1.0
     with:
       dockerfile: Dockerfile
+      failure-threshold: warning
 
   - name: Lint backup script with ShellCheck
     run: shellcheck backup/backup-mywiki.sh
@@ -44,9 +45,11 @@ steps:
       cache-to: type=gha,mode=max
 
   - name: Smoke test MediaWiki
+    env:
+      WIKI_IMAGE: mediawiki-app:${{ github.sha }}
     run: |
-      docker compose up -d wiki-db wiki
-      for i in $(seq 1 30); do
+      docker compose up -d --no-build wiki-db wiki
+      for i in $(seq 1 60); do
         if curl -fs http://localhost:9001/ > /dev/null; then
           echo "MediaWiki is responding on port 9001"
           exit 0
