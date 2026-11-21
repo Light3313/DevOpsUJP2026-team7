@@ -10,6 +10,8 @@ jobs:
 build:
 runs-on: ubuntu-latest
 timeout-minutes: 15
+env:
+  COMPOSE_PROJECT_NAME: ci
 
 steps:
   - name: Checkout repository
@@ -40,13 +42,13 @@ steps:
       file: ./Dockerfile
       push: false
       load: true
-      tags: mediawiki-app:${{ github.sha }}
+      tags: |
+        mediawiki-app:${{ github.sha }}
+        ci-wiki:latest
       cache-from: type=gha
       cache-to: type=gha,mode=max
 
   - name: Smoke test MediaWiki
-    env:
-      WIKI_IMAGE: mediawiki-app:${{ github.sha }}
     run: |
       docker compose up -d --no-build wiki-db wiki
       for i in $(seq 1 60); do
