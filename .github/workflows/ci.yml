@@ -50,15 +50,24 @@ jobs:
 
       - name: Smoke test MediaWiki
         run: |
-          docker compose up -d --no-build wiki-db wiki
+          set -a; . ./.env; set +a
+          # LocalSettings.php немає в git: генеруємо тестовий інсталятором MediaWiki
+          mkdir -p config
+          docker compose up -d --wait wiki-db
+          docker run --rm --network "${COMPOSE_PROJECT_NAME}_default" -v "$PWD/config:/out" ci-wiki:latest \
+            php maintenance/install.php --dbtype=mysql --dbserver=wiki-db \
+            --dbname="$MYSQL_DATABASE" --dbuser="$MYSQL_USER" --dbpass="$MYSQL_PASSWORD" \
+            --server="http://localhost:${WIKI_PORT}" --scriptpath="" \
+            --pass="$(openssl rand -hex 16)" --confpath=/out "CI Wiki" Admin
+          docker compose up -d --no-build wiki
           for i in $(seq 1 60); do
-            if curl -fs http://localhost:9001/ > /dev/null; then
-              echo "MediaWiwi is responding on port 9001"
+            if curl -fsL "http://localhost:${WIKI_PORT}/" > /dev/null; then
+              echo "MediaWiki is responding on port ${WIKI_PORT}"
               exit 0
             fi
             sleep 2
           done
-          echo "Smoke test failed: MediaWiwi did not respond in time"
+          echo "Smoke test failed: MediaWiki did not respond in time"
           docker compose logs wiki-db wiki
           exit 1
 
