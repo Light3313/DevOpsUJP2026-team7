@@ -11,18 +11,25 @@ services:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     volumes:
       - wiki_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
 
   wiki:
     build: .
     restart: unless-stopped
     ports:
-      - "${WIKI_PORT:-9001}:80"
+      - "127.0.0.1:${WIKI_PORT:-9000}:80"
     depends_on:
-      - wiki-db
+      wiki-db:
+        condition: service_healthy
     volumes:
       - wiki_images:/var/www/html/images
-      # Після встановлення MediaWiki розкоментуйте:
-      # - ./config/LocalSettings.php:/var/www/html/LocalSettings.php:ro
+      # LocalSettings.php не зберігається в git, кладеться в config/
+      - ./config/LocalSettings.php:/var/www/html/LocalSettings.php:ro
 
 volumes:
   wiki_db_data:
