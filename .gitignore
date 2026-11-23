@@ -1,6 +1,7 @@
 .env
 config/LocalSettings.php
-*.sql
+# Лише в корені: у mywiki/ лежать SQL-схеми MediaWiki, які потрібні інсталятору
+/*.sql
 *.sql.gz
 *.tar.gz
 *.log
@@ -10,5 +11,7 @@ backups/
 mywiki/LocalSettings.php
 mywiki/images/*
 !mywiki/images/.htaccess
+!mywiki/images/README
 mywiki/cache/*
+!mywiki/cache/.htaccess
 *.sqlite
