@@ -1,0 +1,2 @@
+# LF навіть після checkout на Windows
+*.sh text eol=lf

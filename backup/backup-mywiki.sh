@@ -2,9 +2,12 @@
 
 set -Eeuo pipefail
 
-# Контейнери
-DB_CONTAINER="${DB_CONTAINER:-dev-wiki-db-1}"
-WEB_CONTAINER="${WEB_CONTAINER:-dev-php-wikimedia-1}"
+# Усі файли бекапу (дампи, тимчасові файли, лог) доступні лише власнику
+umask 077
+
+# Контейнери (compose-проєкт "app")
+DB_CONTAINER="${DB_CONTAINER:-app-wiki-db-1}"
+WEB_CONTAINER="${WEB_CONTAINER:-app-wiki-1}"
 
 # База даних
 DB_NAME="wikidb"

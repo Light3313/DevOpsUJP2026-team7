@@ -1,8 +1,19 @@
 .git
+.github
 .env
 .gitignore
-config/LocalSettings.php
+config/
 backups/
+backup/
+monitoring/
+nginx/
 *.sql
 *.sql.gz
+*.tar.gz
 *.log
+
+# MediaWiki: секрети, runtime-дані й те, що не потрібно в образі
+mywiki/LocalSettings.php
+mywiki/images/
+mywiki/cache/
+mywiki/tests/
