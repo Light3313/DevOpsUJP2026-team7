@@ -8,8 +8,11 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     timeout-minutes: 15
+    permissions:
+      contents: read
+      packages: write
     env:
       COMPOSE_PROJECT_NAME: ci
 
@@ -42,6 +45,9 @@ jobs:
           file: ./Dockerfile
           push: false
           load: true
+          labels: |
+            org.opencontainers.image.source=https://github.com/Light3313/DevOpsUJP2026-team7
+            org.opencontainers.image.revision=${{ github.sha }}
           tags: |
             mediawiki-app:${{ github.sha }}
             ci-wiki:latest
@@ -70,6 +76,27 @@ jobs:
           echo "Smoke test failed: MediaWiki did not respond in time"
           docker compose logs wiki-db wiki
           exit 1
+
+      - name: Login to GitHub Container Registry
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish tested ARM64 image to GHCR
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        env:
+          IMAGE_NAME: ghcr.io/light3313/devopsujp2026-team7
+        run: |
+          set -euo pipefail
+          test "$(docker image inspect -f '{{.Architecture}}' ci-wiki:latest)" = arm64
+          test "$(docker image inspect -f '{{index .Config.Labels "org.opencontainers.image.revision"}}' ci-wiki:latest)" = "$GITHUB_SHA"
+          DEST="${IMAGE_NAME}:sha-${GITHUB_SHA}"
+          docker tag ci-wiki:latest "$DEST"
+          docker push "$DEST"
+          echo "Published $DEST"
 
       - name: Tear down Docker Compose stack
         if: always()

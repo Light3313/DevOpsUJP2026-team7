@@ -1,100 +1,99 @@
-
 pipeline {
     agent any
 
     options {
         skipDefaultCheckout(true)
         disableConcurrentBuilds()
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 20, unit: 'MINUTES')
         timestamps()
     }
 
     environment {
-        IMAGE_NAME = 'devopsujp2026-mediawiki'
+        IMAGE_REPO = 'ghcr.io/light3313/devopsujp2026-team7'
     }
 
     stages {
-        stage('Validate Release Tag') {
+        stage('Select published CI image') {
             steps {
                 script {
-                    def releaseTag = env.TAG_NAME ?: ''
-
-                    if (!(releaseTag ==~ /^v[0-9]+\.[0-9]+\.[0-9]+$/)) {
-                        error("Invalid release tag: ${releaseTag}")
+                    if (!((env.TAG_NAME ?: '') ==~ /^v[0-9]+\.[0-9]+\.[0-9]+$/)) {
+                        error('Release must be triggered by a tag such as v1.0.0')
                     }
-
-                    echo "Building release: ${releaseTag}"
+                }
+                checkout scm
+                script {
+                    env.COMMIT_SHA = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
+                    if (!(env.COMMIT_SHA ==~ /^[0-9a-f]{40}$/)) {
+                        error('Invalid commit SHA')
+                    }
+                    env.CI_IMAGE = "${env.IMAGE_REPO}:sha-${env.COMMIT_SHA}"
+                    echo "Release ${env.TAG_NAME}: ${env.CI_IMAGE}"
                 }
             }
         }
 
-        stage('Checkout Source') {
+        stage('Deploy MediaWiki') {
             steps {
-                checkout scm
+                withCredentials([sshUserPrivateKey(
+                    credentialsId: 'mediawiki-deploy-ssh',
+                    keyFileVariable: 'DEPLOY_KEY',
+                    usernameVariable: 'DEPLOY_USER'
+                )]) {
+                    sh '''#!/usr/bin/env bash
+set -euo pipefail
+: "${DEPLOY_HOST:?Configure DEPLOY_HOST in Jenkins environment}"
 
-                sh '''
-                    echo "Git commit:"
-                    git log -1 --format='%h %s'
+ssh -T \
+    -o BatchMode=yes \
+    -o IdentitiesOnly=yes \
+    -o StrictHostKeyChecking=yes \
+    -i "$DEPLOY_KEY" \
+    -p "${DEPLOY_PORT:-22}" \
+    "$DEPLOY_USER@$DEPLOY_HOST" \
+    "bash -se -- '$CI_IMAGE'" <<'REMOTE'
+set -euo pipefail
 
-                    echo "Git tag:"
-                    git tag --points-at HEAD
-                '''
-            }
-        }
+image="$1"
+cd /opt/app
 
-        stage('Validate Docker Compose') {
-            steps {
-                sh '''
-                    cp .env.example .env
-                    docker compose config -q
-                '''
-            }
-        }
+# Pull the image already built and tested by GitHub Actions.
+docker pull "$image"
 
-        stage('Build Docker Image') {
-            steps {
-                sh '''
-                    docker build --pull \
-                      -t "${IMAGE_NAME}:${TAG_NAME}" \
-                      .
-                '''
-            }
-        }
+# Pin the deployment to the immutable digest of the pulled image.
+image_ref="$(docker image inspect --format '{{index .RepoDigests 0}}' "$image")"
+case "$image_ref" in
+    ghcr.io/light3313/devopsujp2026-team7@sha256:*) ;;
+    *) echo "Unexpected image reference: $image_ref" >&2; exit 1 ;;
+esac
 
-        stage('Smoke Test') {
-            steps {
-                sh '''
-                    docker run --rm \
-                      --entrypoint sh \
-                      "${IMAGE_NAME}:${TAG_NAME}" \
-                      -c '
-                        php -v &&
-                        apache2ctl -t &&
-                        test -f /var/www/html/index.php
-                      '
-                '''
-            }
-        }
+# Store a small image-only override outside the application repository.
+override_dir="$HOME/.config/mediawiki-cd"
+mkdir -p "$override_dir"
+override="$override_dir/compose.release.yaml"
+printf 'services:\n  wiki:\n    image: %s\n' "$image_ref" > "$override.tmp"
+mv "$override.tmp" "$override"
 
-        stage('Release Summary') {
-            steps {
-                echo "Release ${env.TAG_NAME} built successfully"
-                echo "Image: ${env.IMAGE_NAME}:${env.TAG_NAME}"
+# Recreate only the wiki service of the verified production project.
+docker compose \
+    -p app \
+    -f /opt/app/docker-compose.yml \
+    -f "$override" \
+    up -d --no-deps --no-build wiki
+
+printf 'Deployed MediaWiki image: %s\n' "$image_ref"
+REMOTE
+'''
+                }
             }
         }
     }
 
     post {
-        always {
-            sh 'rm -f .env'
-        }
-
         success {
-            echo 'Jenkins release pipeline succeeded!'
+            echo "Docker Compose deployment completed for ${env.TAG_NAME}; verify the website manually."
         }
-
         failure {
-            echo 'Jenkins release pipeline failed!'
+            echo 'Deployment failed; no automatic rollback is configured.'
         }
     }
 }
